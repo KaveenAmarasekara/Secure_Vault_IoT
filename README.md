@@ -1,35 +1,296 @@
-# Secure_Vault_IoT
-For the Electronics and Physical Computing Module
-##
+# IoT Zero-Trust Hardware Vault
 
-Project Plan: IoT Zero-Trust Hardware Vault
+## Project Objective
+This project demonstrates a **Proof of Concept (PoC)** for a **multi-layered IoT security system** that implements a **Zero-Trust model** with **real-time MQTT logging**.
 
-Objective: Proof of Concept for a multi-layered security system with MQTT logging.
+The system detects physical access attempts, enforces authentication, and reports events to a cloud broker.
 
-Core Logic & Working Principle
-The system operates on a State Machine to track what is happening in real-time.
-State 0 (IDLE): The outer door is closed. The LDR reads darkness. The system is quietly waiting.
-State 1 (TRIGGERED): The outer door is opened. Light hits the LDR.
-The ESP32 starts a strict millis() timer (e.g., 15 seconds).
-The LCD Display prompts: "ENTER CODE".
-State 2 (AUTHENTICATION): The user must turn the Potentiometer to a specific secret value and press the Switch to confirm.
-State 3A (SUCCESS): If the switch is pressed at the right value before 15 seconds, the LCD reads "ACCESS GRANTED", and an MQTT message logs a successful entry.
-State 3B (TIMEOUT / BREACH): If 15 seconds pass with no input, OR the wrong code is entered, the Buzzer sounds, a Red LED flashes, and an MQTT "ACCESS TIMEOUT / INTRUSION" alert is published to the cloud.
-Implementation Guide: Scratch to End
-Circuitry & Hardware Wiring
-Keep the breadboard wiring clean to avoid short circuits.
-Input 1 (Outer Door): Connect the LDR to an analog pin using a voltage divider with a Resistor.
-Input 2 (Authentication Dial): Connect the Potentiometer's middle pin to another analog pin.
-Input 3 (Enter Button): Connect a Switch to a digital pin. Use the ESP32's internal pull-up resistor in your code (INPUT_PULLUP).
-Outputs: Connect the Buzzer and an LED to digital pins. Connect the LCD (using standard pins or I2C if available).
-Coding the Logic in IDE 
-Do not use delay() for your timeout feature, as it pauses the whole microcontroller and stops it from reading the potentiometer or switch. Use millis().
-Step 1: Sensor Test. Read the LDR and print it to the Serial Monitor to find the threshold value between "door closed" (dark) and "door open" (light).
-Commit 2: git commit -m "Added LDR threshold and basic inputs"
-Step 2: The Timer Logic. ```cpp if (LDR_Value > threshold && !timerStarted) { startTime = millis(); timerStarted = true; } if (timerStarted && (millis() - startTime >= 15000)) { triggerAlarm(); // 15 seconds passed! }
-Step 3: Add Wi-Fi & MQTT. Include the WiFi.h and PubSubClient.h libraries. Set up the connection to the public HiveMQ broker.
-Commit 3: git commit -m "Implemented millis timer and MQTT connection"
-Testing & Presentation Prep
-Testing: Open the HiveMQ public web socket client on your laptop. Trigger the LDR with your hand, wait 15 seconds, and watch the dashboard light up with your timeout alert.
+---
+
+# Core Logic & Working Principle
+
+The system operates using a **Finite State Machine (FSM)** to track system activity in real time.
+
+## State 0 – IDLE
+- The outer door is **closed**
+- The **LDR sensor detects darkness**
+- The system remains in standby waiting for activity
+
+## State 1 – TRIGGERED
+- The **outer door is opened**
+- **Light hits the LDR sensor**
+- The **ESP32 starts a strict `millis()` timer (15 seconds)**
+- LCD displays:
 
 
+ENTER CODE
+
+
+## State 2 – AUTHENTICATION
+The user must:
+1. Rotate the **potentiometer** to a specific secret value
+2. Press the **switch** to confirm the code
+
+## State 3A – SUCCESS
+If the correct value is entered within **15 seconds**:
+
+- LCD displays:
+
+
+ACCESS GRANTED
+
+
+- ESP32 sends an **MQTT message** logging a **successful entry**
+
+## State 3B – TIMEOUT / BREACH
+If either of the following occurs:
+
+- 15 seconds pass without authentication
+- Wrong code is entered
+
+The system triggers an alarm:
+
+- **Buzzer sounds**
+- **Red LED flashes**
+- **MQTT alert is published**
+
+Example alert message:
+
+
+ACCESS TIMEOUT / INTRUSION
+
+
+---
+
+# Implementation Guide (Scratch to End)
+
+## Circuitry & Hardware Wiring
+
+Ensure the breadboard wiring is clean and secure to avoid short circuits.
+
+### Input 1 – Outer Door Detection
+- Use an **LDR sensor**
+- Connect it to an **analog pin**
+- Use a **voltage divider with a resistor**
+
+Purpose:
+- Detect light when the door opens
+
+---
+
+### Input 2 – Authentication Dial
+- Connect the **middle pin of the potentiometer** to another **analog pin**
+
+Purpose:
+- Acts as a **secret dial-based authentication code**
+
+---
+
+### Input 3 – Enter Button
+- Connect a **switch** to a **digital pin**
+- Use the **ESP32 internal pull-up resistor**
+
+```cpp
+pinMode(buttonPin, INPUT_PULLUP);
+```
+
+Purpose:
+
+Confirms the entered authentication value
+
+Output Devices
+
+Connect the following outputs to digital pins:
+
+Buzzer – Intrusion alert
+
+Red LED – Visual warning indicator
+
+LCD Display – User interface
+
+The LCD can be connected using:
+
+Standard parallel pins
+or
+
+I2C interface (recommended)
+
+Coding the Logic
+Important Rule
+
+Do not use delay() for timeout logic.
+
+Why?
+
+delay() blocks the microcontroller and prevents it from reading inputs.
+
+Instead, use millis() for non-blocking timing.
+
+Step 1 – Sensor Testing
+
+Read the LDR value
+
+Print values to the Serial Monitor
+
+Determine the threshold between:
+
+Condition	Sensor Value
+Door Closed	Low light
+Door Open	High light
+
+Example code concept:
+
+int LDR_Value = analogRead(LDR_Pin);
+Serial.println(LDR_Value);
+
+Commit your progress:
+
+git commit -m "Added LDR threshold and basic inputs"
+Step 2 – Timer Logic
+
+Use millis() to create a 15-second authentication window.
+
+if (LDR_Value > threshold && !timerStarted) {
+    startTime = millis();
+    timerStarted = true;
+}
+
+if (timerStarted && (millis() - startTime >= 15000)) {
+    triggerAlarm(); // 15 seconds passed
+}
+
+This allows the system to:
+
+Continue reading sensors
+
+Avoid blocking execution
+
+Step 3 – Wi-Fi & MQTT Integration
+
+Include the required libraries:
+
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+Configure the ESP32 to connect to:
+
+WiFi network
+
+HiveMQ public MQTT broker
+
+Purpose:
+
+Send alerts and logs to the cloud.
+
+Example MQTT messages:
+
+ACCESS GRANTED
+ACCESS TIMEOUT
+INTRUSION DETECTED
+
+Commit the changes:
+
+git commit -m "Implemented millis timer and MQTT connection"
+Testing & Demonstration
+MQTT Monitoring
+
+Open the HiveMQ WebSocket Client on your laptop
+
+Subscribe to the project topic
+
+Example topic:
+
+vault/security/logs
+Testing Procedure
+
+Trigger the LDR sensor using your hand or light
+
+Wait 15 seconds without authentication
+
+Observe the system behavior:
+
+Expected results:
+
+Buzzer activates
+
+LED flashes
+
+MQTT alert appears on the dashboard
+
+Technologies Used
+
+ESP32 Microcontroller
+
+MQTT Protocol
+
+HiveMQ Public Broker
+
+LDR Sensor
+
+Potentiometer
+
+Push Button
+
+LCD Display
+
+Buzzer & LED
+
+Arduino IDE
+
+Security Concept
+
+This system demonstrates multi-layer security:
+
+Physical Intrusion Detection – LDR sensor
+
+Authentication Mechanism – Potentiometer code
+
+Time-Limited Access – 15-second timer
+
+Alert System – Buzzer + LED
+
+Remote Logging – MQTT cloud alerts
+
+This approach follows the Zero-Trust Security Model.
+
+Future Improvements
+
+Possible upgrades include:
+
+Encrypted MQTT (TLS)
+
+Keypad or biometric authentication
+
+Mobile notification system
+
+Secure password storage
+
+Tamper detection sensors
+
+License
+
+This project is released for educational and research purposes.
+
+
+---
+
+✅ This version is **GitHub-ready** with:
+
+- Proper markdown structure  
+- Clean headings  
+- Code blocks  
+- Lists  
+- Readable documentation  
+
+---
+
+If you want, I can also **upgrade this README to a professional GitHub README with:**
+
+- Architecture diagram  
+- Circuit diagram  
+- State machine diagram  
+- Images section  
+- Demo GIF  
+- Folder structure  
+
+That version looks **much more impressive for lecturers and GitHub portfolios**.
