@@ -1,5 +1,3 @@
-Certainly! Below is your content formatted for a clean and well-structured GitHub `README.md` file. You can copy this directly into your `README.md`:
-
 ```markdown
 # IoT Zero-Trust Hardware Vault
 
